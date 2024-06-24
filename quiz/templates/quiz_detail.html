@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Detail</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px; /* Add padding for overall layout */
+        }
+        .mb-4 {
+            margin-bottom: 20px;
+        }
+        .mt-4 {
+            margin-top: 20px;
+        }
+        .justify-content-center {
+            justify-content: center;
+        }
+        .mx-2 {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        .active {
+            background-color: #007bff;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col">
+                <h2>Quiz</h2>
+                <p>Time spent: <span id="timeSpent">00:00:00</span></p>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col">
+                <ul class="list-group list-group-horizontal justify-content-center" id="quizQuestions">
+                    {% for question in quizData %}
+                        <li class="list-group-item cursor-pointer {% if forloop.counter0 == currentQuestionIndex %} active {% endif %}" onclick="setCurrentQuestionIndex({{ forloop.counter0 }})">
+                            {{ forloop.counter }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h4 id="questionText"></h4>
+                <p id="explanation"></p>
+                <ul class="list-group" id="optionsList">
+                    {% for option in quizData[currentQuestionIndex].options %}
+                        <li class="list-group-item cursor-pointer" onclick="handleAnswerClick('{{ option }}')">
+                            {{ option }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-4 justify-content-center">
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary mx-2" onclick="handlePrevClick()" {% if currentQuestionIndex == 0 %} disabled {% endif %}>Previous</button>
+                {% if currentQuestionIndex == quizLength - 1 %}
+                    <button type="button" class="btn btn-success mx-2" onclick="finishQuiz()">Finish</button>
+                {% else %}
+                    <button type="button" class="btn btn-primary mx-2" onclick="handleNextClick()">Next</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and jQuery (optional for some components) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        // JavaScript functions for quiz interaction
+        let currentQuestionIndex = {{ 0 }};
+        const quizData = {{ quizData|safe }}; // Convert from JSON string to JavaScript object
+        let userAnswers = [];
+
+        function setCurrentQuestionIndex(index) {
+            currentQuestionIndex = index;
+            updateQuestionUI();
+        }
+
+        function updateQuestionUI() {
+            const currentQuestion = quizData[currentQuestionIndex];
+            document.getElementById('questionText').textContent = currentQuestion.question;
+            document.getElementById('explanation').textContent = currentQuestion.explanation;
+
+            // Update options list
+            const optionsList = document.getElementById('optionsList');
+            optionsList.innerHTML = '';
+            currentQuestion.options.forEach(option => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item cursor-pointer';
+                li.textContent = option;
+                li.onclick = () => handleAnswerClick(option);
+                optionsList.appendChild(li);
+            });
+
+            // Update active question indicator
+            const quizQuestions = document.getElementById('quizQuestions');
+            Array.from(quizQuestions.children).forEach((li, index) => {
+                li.classList.remove('active');
+                if (index === currentQuestionIndex) {
+                    li.classList.add('active');
+                }
+            });
+        }
+
+        function handleAnswerClick(option) {
+            userAnswers[currentQuestionIndex] = option;
+            const optionsList = document.getElementById('optionsList');
+            Array.from(optionsList.children).forEach(li => {
+                li.classList.remove('active');
+                if (li.textContent === option) {
+                    li.classList.add('active');
+                }
+            });
+        }
+
+        function handlePrevClick() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                updateQuestionUI();
+            }
+        }
+
+        function handleNextClick() {
+            if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                updateQuestionUI();
+            }
+        }
+
+        function finishQuiz() {
+            // Implement logic to submit quiz answers or finish action
+            alert('Quiz finished!');
+            // Example: Submit answers via AJAX or redirect to result page
+        }
+    </script>
+</body>
+</html>

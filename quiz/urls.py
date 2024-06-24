@@ -10,7 +10,8 @@ urlpatterns = [
     path('start-quiz/', views.start_quiz, name='start_quiz'),
     path('start-quiz/<int:topic_id>/', views.start_quiz, name='start_quiz_topic'),
     path('quiz/<int:attempt_id>/', views.quiz_detail, name='quiz_detail'),
-    path('quiz/<int:attempt_id>/results/', views.quiz_results, name='quiz_results'),
-
+    path('submit_quiz/<int:attempt_id>/',
+         views.submit_quiz, name="submit_quiz"),
+    path('quiz_result/<int:attempt_id>/', views.quiz_result, name="quiz_result")
     # other paths
 ]

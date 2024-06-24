@@ -25,9 +25,10 @@ SECRET_KEY = 'django-insecure-*&1!%lz37a(nup2j(9^dj)3clgenixuu@z2i1o94!knid6gub$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['mhgkdd-8000.csb.app', '127.0.0.1',
+                 'localhost', "https://mhgkdd-8000.csb.app", "*"]
 
-
+CSRF_TRUSTED_ORIGINS = ['https://mhgkdd-8000.csb.app']
 # Application definition
 
 INSTALLED_APPS = [
