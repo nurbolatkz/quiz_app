@@ -78,20 +78,18 @@
             </div>
         </div>
     </div>
-
     <!-- Bootstrap JS and jQuery (optional for some components) -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-        // JavaScript functions for quiz interaction
         let currentQuestionIndex = 0;
         const quizData = {{ quizData|safe }}; // Convert from JSON string to JavaScript object
-        const quizLength = {{ quizLength }}; // Get quiz length from Django context
-       
-        const correctAnswers = []; // Array to store question IDs for correct answers
-        const incorrectAnswers = []; 
+        const quizLength = {{ quizLength }};
+        const userAnswers = [];
+        const correctAnswers = [];
+        const incorrectAnswers = [];
 
         function setCurrentQuestionIndex(index) {
             currentQuestionIndex = index;
@@ -105,7 +103,6 @@
             document.getElementById('resultText').textContent = '';
             document.getElementById('examplesList').innerHTML = '';
 
-            // Update options list
             const optionsList = document.getElementById('optionsList');
             optionsList.innerHTML = '';
             currentQuestion.options.forEach(option => {
@@ -116,7 +113,6 @@
                 optionsList.appendChild(li);
             });
 
-            // Update active question indicator
             const quizQuestions = document.getElementById('quizQuestions');
             Array.from(quizQuestions.children).forEach((li, index) => {
                 li.classList.remove('active');
@@ -125,10 +121,8 @@
                 }
             });
 
-            // Check if it's the first question
             document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
 
-            // Check if it's the last question
             if (currentQuestionIndex === quizLength - 1) {
                 document.getElementById('nextBtn').style.display = 'none';
                 document.getElementById('finishBtn').style.display = 'inline-block';
@@ -156,20 +150,18 @@
         
             explanation.textContent = currentQuestion.explanation;
         
-            // Display examples
             currentQuestion.examples.forEach(example => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item';
-                const sentence = example.sentence.replace('__________', <strong>${example.highlight}</strong>);
+                const sentence = example.sentence.replace('__________', `<strong>${example.highlight}</strong>`);
                 li.innerHTML = sentence;
                 examplesList.appendChild(li);
             });
         
-            // Mark selected option and disable all options
             const optionsList = document.getElementById('optionsList');
             Array.from(optionsList.children).forEach(li => {
                 li.classList.remove('active');
-                li.onclick = null; // Disable further clicks
+                li.onclick = null;
                 if (li.textContent === option) {
                     li.classList.add('active');
                 }
@@ -193,36 +185,33 @@
         }
 
         function finishQuiz() {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = {% url 'quiz_result' attempt.id %};
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "quiz_result" attempt.id %}';
     
-    const csrfToken = '{{ csrf_token }}';
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfToken;
-    form.appendChild(csrfInput);
+            const csrfToken = '{{ csrf_token }}';
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
 
-    const correctAnswersInput = document.createElement('input');
-    correctAnswersInput.type = 'hidden';
-    correctAnswersInput.name = 'correct_answers';
-    correctAnswersInput.value = JSON.stringify(correctAnswers); // Convert to JSON string
-    form.appendChild(correctAnswersInput);
+            const correctAnswersInput = document.createElement('input');
+            correctAnswersInput.type = 'hidden';
+            correctAnswersInput.name = 'correct_answers';
+            correctAnswersInput.value = JSON.stringify(correctAnswers);
+            form.appendChild(correctAnswersInput);
 
-    const incorrectAnswersInput = document.createElement('input');
-    incorrectAnswersInput.type = 'hidden';
-    incorrectAnswersInput.name = 'incorrect_answers';
-    incorrectAnswersInput.value = JSON.stringify(incorrectAnswers); // Convert to JSON string
-    form.appendChild(incorrectAnswersInput);
+            const incorrectAnswersInput = document.createElement('input');
+            incorrectAnswersInput.type = 'hidden';
+            incorrectAnswersInput.name = 'incorrect_answers';
+            incorrectAnswersInput.value = JSON.stringify(incorrectAnswers);
+            form.appendChild(incorrectAnswersInput);
 
-   
+            document.body.appendChild(form);
+            form.submit();
+        }
 
-    document.body.appendChild(form);
-    form.submit();
-}
-
-        // Initialize UI with first question
         updateQuestionUI();
     </script>
 </body>
