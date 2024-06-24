@@ -74,10 +74,14 @@ def quiz_detail(request, attempt_id):
     quiz_data = []
     for question in questions:
         options = [option.option_text for option in question.options.all()]
+        examples = [{'sentence': example.sentence, 'highlight': example.highlight}
+                    for example in question.examples.all()]
         quiz_data.append({
             'question': question.question_text,
             'explanation': question.explanation,
-            'options': options
+            'options': options,
+            'correct_answer': question.correct_answer,
+            'examples': examples
         })
 
     # Calculate quiz length
@@ -86,52 +90,32 @@ def quiz_detail(request, attempt_id):
     return render(request, 'quiz_detail.html', {
         'attempt': attempt,
         'quizData': quiz_data,
-        'currentQuestionIndex': 0,  # Initialize current question index
         'quizLength': quiz_length  # Pass quiz length to template
     })
 
 
 @login_required
-def submit_quiz(request, attempt_id):
-    attempt = get_object_or_404(QuizAttempt, id=attempt_id, user=request.user)
+def quiz_result(request, attempt_id):
     if request.method == 'POST':
-        correct_answers = []
-        incorrect_answers = []
+        correct_answers = int(request.POST.get('correct_answers'))
+        incorrect_answers = int(request.POST.get('incorrect_answers'))
 
-        for question_id in attempt.quiz:
-            question = get_object_or_404(Question, id=question_id)
-            selected_option_label = request.POST.get(f'question_{question.id}')
-            if selected_option_label is None:
-                continue
-            try:
-                selected_option = Option.objects.get(
-                    question=question.id, option_label=selected_option_label)
-            except:
-                print(
-                    f'for this question id - {question.id}, title: {question} not founded selected_option')
-
-            if selected_option.option_text == question.correct_answer:
-                correct_answers.append(question.id)
-            else:
-                incorrect_answers.append(question.id)
-
+        attempt = get_object_or_404(
+            QuizAttempt, id=attempt_id, user=request.user)
         attempt.correct_answers = correct_answers
-        attempt.incorrect_answers = incorrect_answers
-        attempt.finished_at = timezone.now()
         attempt.save()
 
-        # Update user stats
         stats, created = UserStats.objects.get_or_create(user=request.user)
         stats.quizzes_taken += 1
-        stats.incorrect_answers += len(incorrect_answers)
-        stats.average_stats = (stats.average_stats * (stats.quizzes_taken -
-                               1) + len(correct_answers)) / stats.quizzes_taken
+        stats.incorrect_answers += int(incorrect_answers)
+        stats.average_stats = (
+            stats.average_stats * (stats.quizzes_taken - 1) + correct_answers) / stats.quizzes_taken
         stats.save()
 
-        return redirect('quiz_result', attempt_id=attempt.id)
-
-
-@login_required
-def quiz_result(request, attempt_id):
-    attempt = get_object_or_404(QuizAttempt, id=attempt_id, user=request.user)
-    return render(request, 'quiz_results.html', {'attempt': attempt})
+        return render(request, 'quiz_results.html', {
+            'correct_answers': correct_answers,
+            'incorrect_answers': incorrect_answers,
+            'attempt': attempt
+        })
+    else:
+        return render(request, 'quiz_results.html', {})

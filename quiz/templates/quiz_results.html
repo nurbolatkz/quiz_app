@@ -3,12 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Results</title>
+    <title>Quiz Result</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .result-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .result-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .result-summary {
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Quiz Results</h1>
-    <p>Total Questions: {{ attempt.total_questions }}</p>
-    <p>Correct Answers: {{ attempt.correct_answers|length }}</p>
-    <p>Incorrect Answers: {{ attempt.incorrect_answers|length }}</p>
+    <div class="container result-container">
+        <div class="result-header">
+            <h2>Quiz Result</h2>
+        </div>
+        <div class="result-summary">
+            <p><strong>Correct Answers:</strong> {{ correct_answers }}</p>
+            <p><strong>Incorrect Answers:</strong> {{ incorrect_answers }}</p>
+        </div>
+       
+    </div>
 </body>
 </html>

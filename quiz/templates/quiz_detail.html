@@ -32,6 +32,14 @@
             background-color: #007bff;
             color: #fff;
         }
+        .correct {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .incorrect {
+            background-color: #dc3545;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -46,7 +54,7 @@
             <div class="col">
                 <ul class="list-group list-group-horizontal justify-content-center" id="quizQuestions">
                     {% for question in quizData %}
-                        <li class="list-group-item cursor-pointer {% if forloop.counter0 == currentQuestionIndex %} active {% endif %}" onclick="setCurrentQuestionIndex({{ forloop.counter0 }})">
+                        <li class="list-group-item cursor-pointer {% if forloop.counter0 == 0 %} active {% endif %}" onclick="setCurrentQuestionIndex({{ forloop.counter0 }})">
                             {{ forloop.counter }}
                         </li>
                     {% endfor %}
@@ -56,24 +64,17 @@
         <div class="row">
             <div class="col">
                 <h4 id="questionText"></h4>
+                <ul class="list-group" id="optionsList"></ul>
+                <p id="resultText"></p>
                 <p id="explanation"></p>
-                <ul class="list-group" id="optionsList">
-                    {% for option in quizData[currentQuestionIndex].options %}
-                        <li class="list-group-item cursor-pointer" onclick="handleAnswerClick('{{ option }}')">
-                            {{ option }}
-                        </li>
-                    {% endfor %}
-                </ul>
+                <ul class="list-group" id="examplesList"></ul>
             </div>
         </div>
         <div class="row mt-4 justify-content-center">
             <div class="col-auto">
-                <button type="button" class="btn btn-primary mx-2" onclick="handlePrevClick()" {% if currentQuestionIndex == 0 %} disabled {% endif %}>Previous</button>
-                {% if currentQuestionIndex == quizLength - 1 %}
-                    <button type="button" class="btn btn-success mx-2" onclick="finishQuiz()">Finish</button>
-                {% else %}
-                    <button type="button" class="btn btn-primary mx-2" onclick="handleNextClick()">Next</button>
-                {% endif %}
+                <button type="button" class="btn btn-primary mx-2" onclick="handlePrevClick()" id="prevBtn">Previous</button>
+                <button type="button" class="btn btn-primary mx-2" onclick="handleNextClick()" id="nextBtn">Next</button>
+                <button type="button" class="btn btn-success mx-2" id="finishBtn" onclick="finishQuiz()" style="display: none;">Finish</button>
             </div>
         </div>
     </div>
@@ -85,9 +86,12 @@
 
     <script>
         // JavaScript functions for quiz interaction
-        let currentQuestionIndex = {{ 0 }};
+        let currentQuestionIndex = 0;
         const quizData = {{ quizData|safe }}; // Convert from JSON string to JavaScript object
-        let userAnswers = [];
+        const quizLength = {{ quizLength }}; // Get quiz length from Django context
+        const userAnswers = [];
+        let correctAnswersCount = 0;
+        let incorrectAnswersCount = 0;
 
         function setCurrentQuestionIndex(index) {
             currentQuestionIndex = index;
@@ -97,7 +101,9 @@
         function updateQuestionUI() {
             const currentQuestion = quizData[currentQuestionIndex];
             document.getElementById('questionText').textContent = currentQuestion.question;
-            document.getElementById('explanation').textContent = currentQuestion.explanation;
+            document.getElementById('explanation').textContent = '';
+            document.getElementById('resultText').textContent = '';
+            document.getElementById('examplesList').innerHTML = '';
 
             // Update options list
             const optionsList = document.getElementById('optionsList');
@@ -118,10 +124,48 @@
                     li.classList.add('active');
                 }
             });
+
+            // Check if it's the first question
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+
+            // Check if it's the last question
+            if (currentQuestionIndex === quizLength - 1) {
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('finishBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+                document.getElementById('finishBtn').style.display = 'none';
+            }
         }
 
         function handleAnswerClick(option) {
-            userAnswers[currentQuestionIndex] = option;
+            const currentQuestion = quizData[currentQuestionIndex];
+            const resultText = document.getElementById('resultText');
+            const explanation = document.getElementById('explanation');
+            const examplesList = document.getElementById('examplesList');
+
+            if (option === currentQuestion.correct_answer) {
+                resultText.textContent = 'Correct!';
+                resultText.className = 'correct';
+                correctAnswersCount++;
+            } else {
+                resultText.textContent = 'Incorrect!';
+                resultText.className = 'incorrect';
+                incorrectAnswersCount++;
+            }
+
+            explanation.textContent = currentQuestion.explanation;
+
+            // Display examples
+            currentQuestion.examples.forEach(example => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                const sentence = example.sentence.replace('__________', `<strong>${example.highlight}</strong>`);
+                li.innerHTML = sentence;
+                examplesList.appendChild(li);
+            });
+
+            // Mark selected option
             const optionsList = document.getElementById('optionsList');
             Array.from(optionsList.children).forEach(li => {
                 li.classList.remove('active');
@@ -129,6 +173,8 @@
                     li.classList.add('active');
                 }
             });
+
+            userAnswers[currentQuestionIndex] = option;
         }
 
         function handlePrevClick() {
@@ -146,10 +192,41 @@
         }
 
         function finishQuiz() {
-            // Implement logic to submit quiz answers or finish action
-            alert('Quiz finished!');
-            // Example: Submit answers via AJAX or redirect to result page
-        }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `{% url 'quiz_result' attempt.id %}`;
+    
+    const csrfToken = '{{ csrf_token }}';
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+
+    const correctAnswersInput = document.createElement('input');
+    correctAnswersInput.type = 'hidden';
+    correctAnswersInput.name = 'correct_answers';
+    correctAnswersInput.value = correctAnswersCount;
+    form.appendChild(correctAnswersInput);
+
+    const incorrectAnswersInput = document.createElement('input');
+    incorrectAnswersInput.type = 'hidden';
+    incorrectAnswersInput.name = 'incorrect_answers';
+    incorrectAnswersInput.value = incorrectAnswersCount;
+    form.appendChild(incorrectAnswersInput);
+
+    const userAnswersInput = document.createElement('input');
+    userAnswersInput.type = 'hidden';
+    userAnswersInput.name = 'user_answers';
+    userAnswersInput.value = JSON.stringify(userAnswers);
+    form.appendChild(userAnswersInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+        // Initialize UI with first question
+        updateQuestionUI();
     </script>
 </body>
 </html>
