@@ -10,24 +10,93 @@
         body {
             font-family: Arial, sans-serif;
             background-color: #f0f0f0;
-            padding: 20px;
+            color: #333;
+            margin: 0;
+            padding: 0;
         }
         .result-container {
             background-color: #fff;
-            padding: 20px;
+            padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            margin: 5% auto;
+            max-width: 600px;
         }
         .result-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .result-header h2 {
+            font-size: 2em;
+            color: #007bff;
         }
         .result-summary {
-            margin-bottom: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .result-summary p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .btn-home {
+            display: block;
+            width: 50%;
+            margin: 20px auto;
+            font-size: 1.2em;
+            padding: 10px;
+        }
+        .navbar {
+            margin-bottom: 0;
+        }
+        .navbar-brand {
+            font-size: 1.5em;
+        }
+        .nav-link {
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            .result-container {
+                margin-top: 10%;
+                padding: 20px;
+            }
+            .result-header h2 {
+                font-size: 1.5em;
+            }
+            .result-summary p {
+                font-size: 1em;
+            }
+            .btn-home {
+                width: 70%;
+                font-size: 1em;
+            }
+            .navbar-brand, .nav-link {
+                font-size: 1em;
+            }
         }
     </style>
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Quiz App</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Profile</a>
+                    </li>
+                    <li class="nav-item"> 
+                        <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
     <div class="container result-container">
         <div class="result-header">
             <h2>Quiz Result</h2>
@@ -36,7 +105,11 @@
             <p><strong>Correct Answers:</strong> {{ correct_answers }}</p>
             <p><strong>Incorrect Answers:</strong> {{ incorrect_answers }}</p>
         </div>
-       
+        <a href="/" class="btn btn-primary btn-home">Go to Home Page</a>
     </div>
+    <!-- Bootstrap JS and jQuery (optional for some components) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

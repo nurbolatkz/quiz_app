@@ -3,14 +3,45 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-
+from django.db.models import Sum
 from .models import QuizAttempt, Topic, Question, UserStats, Option
+import json
+
 
 
 @login_required
 def home_view(request):
+    user = request.user
+
+    # Get all quiz attempts by the user
+    quiz_attempts = QuizAttempt.objects.filter(user=user)
+
+    # Calculate the total number of quizzes taken
+    quizzes_taken = quiz_attempts.count()
+
+    # Initialize counters
+    total_correct_answers = 0
+    total_incorrect_answers = 0
+
+    # Sum up the correct and incorrect answers
+    for attempt in quiz_attempts:
+        #print(type(attempt.correct_answers))
+        total_correct_answers += len(attempt.correct_answers)
+        total_incorrect_answers += len(attempt.incorrect_answers)
+
+    # Calculate the average stats
+    average_stats = f"{total_correct_answers / quizzes_taken:.2f} correct answers on average" if quizzes_taken else "N/A"
+
     topics = Topic.objects.all()
-    return render(request, 'home.html', {'topics': topics})
+
+    context = {
+        'quizzes_taken': quizzes_taken,
+        'average_stats': average_stats,
+        'incorrect_answers': total_incorrect_answers,
+        'topics': topics,
+    }
+
+    return render(request, 'home.html', context)
 
 
 def register_view(request):
@@ -97,19 +128,26 @@ def quiz_detail(request, attempt_id):
 @login_required
 def quiz_result(request, attempt_id):
     if request.method == 'POST':
-        correct_answers = int(request.POST.get('correct_answers'))
-        incorrect_answers = int(request.POST.get('incorrect_answers'))
+        correct_answers_json = request.POST.get('correct_answers', '[]')
+        incorrect_answers_json = request.POST.get('incorrect_answers', '[]')
+        user_answers_json = request.POST.get('user_answers', '[]')
 
-        attempt = get_object_or_404(
-            QuizAttempt, id=attempt_id, user=request.user)
+        correct_answers = json.loads(correct_answers_json)
+        incorrect_answers = json.loads(incorrect_answers_json)
+        user_answers = json.loads(user_answers_json)
+
+        attempt = get_object_or_404(QuizAttempt, pk=attempt_id)
+
+        # Update attempt with correct and incorrect answers
         attempt.correct_answers = correct_answers
+        attempt.incorrect_answers = incorrect_answers
         attempt.save()
 
+        # Update or create UserStats
         stats, created = UserStats.objects.get_or_create(user=request.user)
         stats.quizzes_taken += 1
-        stats.incorrect_answers += int(incorrect_answers)
-        stats.average_stats = (
-            stats.average_stats * (stats.quizzes_taken - 1) + correct_answers) / stats.quizzes_taken
+        stats.incorrect_answers += len(incorrect_answers)
+        stats.average_stats = (stats.average_stats * (stats.quizzes_taken - 1) + len(correct_answers)) / stats.quizzes_taken
         stats.save()
 
         return render(request, 'quiz_results.html', {

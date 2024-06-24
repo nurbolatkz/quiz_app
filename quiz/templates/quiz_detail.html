@@ -89,9 +89,9 @@
         let currentQuestionIndex = 0;
         const quizData = {{ quizData|safe }}; // Convert from JSON string to JavaScript object
         const quizLength = {{ quizLength }}; // Get quiz length from Django context
-        const userAnswers = [];
-        let correctAnswersCount = 0;
-        let incorrectAnswersCount = 0;
+       
+        const correctAnswers = []; // Array to store question IDs for correct answers
+        const incorrectAnswers = []; 
 
         function setCurrentQuestionIndex(index) {
             currentQuestionIndex = index;
@@ -143,37 +143,38 @@
             const resultText = document.getElementById('resultText');
             const explanation = document.getElementById('explanation');
             const examplesList = document.getElementById('examplesList');
-
+        
             if (option === currentQuestion.correct_answer) {
                 resultText.textContent = 'Correct!';
                 resultText.className = 'correct';
-                correctAnswersCount++;
+                correctAnswers.push(currentQuestion.id); 
             } else {
                 resultText.textContent = 'Incorrect!';
                 resultText.className = 'incorrect';
-                incorrectAnswersCount++;
+                incorrectAnswers.push(currentQuestion.id);
             }
-
+        
             explanation.textContent = currentQuestion.explanation;
-
+        
             // Display examples
             currentQuestion.examples.forEach(example => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item';
-                const sentence = example.sentence.replace('__________', `<strong>${example.highlight}</strong>`);
+                const sentence = example.sentence.replace('__________', <strong>${example.highlight}</strong>);
                 li.innerHTML = sentence;
                 examplesList.appendChild(li);
             });
-
-            // Mark selected option
+        
+            // Mark selected option and disable all options
             const optionsList = document.getElementById('optionsList');
             Array.from(optionsList.children).forEach(li => {
                 li.classList.remove('active');
+                li.onclick = null; // Disable further clicks
                 if (li.textContent === option) {
                     li.classList.add('active');
                 }
             });
-
+        
             userAnswers[currentQuestionIndex] = option;
         }
 
@@ -194,7 +195,7 @@
         function finishQuiz() {
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = `{% url 'quiz_result' attempt.id %}`;
+    form.action = {% url 'quiz_result' attempt.id %};
     
     const csrfToken = '{{ csrf_token }}';
     const csrfInput = document.createElement('input');
@@ -206,20 +207,16 @@
     const correctAnswersInput = document.createElement('input');
     correctAnswersInput.type = 'hidden';
     correctAnswersInput.name = 'correct_answers';
-    correctAnswersInput.value = correctAnswersCount;
+    correctAnswersInput.value = JSON.stringify(correctAnswers); // Convert to JSON string
     form.appendChild(correctAnswersInput);
 
     const incorrectAnswersInput = document.createElement('input');
     incorrectAnswersInput.type = 'hidden';
     incorrectAnswersInput.name = 'incorrect_answers';
-    incorrectAnswersInput.value = incorrectAnswersCount;
+    incorrectAnswersInput.value = JSON.stringify(incorrectAnswers); // Convert to JSON string
     form.appendChild(incorrectAnswersInput);
 
-    const userAnswersInput = document.createElement('input');
-    userAnswersInput.type = 'hidden';
-    userAnswersInput.name = 'user_answers';
-    userAnswersInput.value = JSON.stringify(userAnswers);
-    form.appendChild(userAnswersInput);
+   
 
     document.body.appendChild(form);
     form.submit();
