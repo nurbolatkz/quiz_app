@@ -129,32 +129,27 @@ def quiz_detail(request, attempt_id):
 @login_required
 def quiz_result(request, attempt_id):
     if request.method == 'POST':
-        correct_answers_json = request.POST.get('correct_answers', '[]')
-        incorrect_answers_json = request.POST.get('incorrect_answers', '[]')
-        #user_answers_json = request.POST.get('user_answers', '[]')
-        
-        #print(correct_answers_json)
-        correct_answers = len(correct_answers_json)
-        incorrect_answers = len(incorrect_answers_json)
-        #user_answers = json.loads(user_answers_json)
+        correct_answers = request.POST.get('correct_answers')
+        incorrect_answers = request.POST.get('incorrect_answers')
 
-        attempt = get_object_or_404(QuizAttempt, pk=attempt_id)
+        correct_answers = convert_to_list(correct_answers)
+        incorrect_answers = convert_to_list(incorrect_answers)
 
-        # Update attempt with correct and incorrect answers
+        attempt = get_object_or_404(
+            QuizAttempt, id=attempt_id, user=request.user)
         attempt.correct_answers = correct_answers
-        attempt.incorrect_answers = incorrect_answers
         attempt.save()
 
-        # Update or create UserStats
         stats, created = UserStats.objects.get_or_create(user=request.user)
         stats.quizzes_taken += 1
-        stats.incorrect_answers += incorrect_answers
-        stats.average_stats = (stats.average_stats * (stats.quizzes_taken - 1) + correct_answers)/ stats.quizzes_taken
+        stats.incorrect_answers += len(incorrect_answers)
+        stats.average_stats = (
+            stats.average_stats * (stats.quizzes_taken - 1) + len(correct_answers)) / stats.quizzes_taken
         stats.save()
 
         return render(request, 'quiz_results.html', {
-            'correct_answers': correct_answers,
-            'incorrect_answers': incorrect_answers,
+            'correct_answers': len(correct_answers),
+            'incorrect_answers': len(incorrect_answers),
             'attempt': attempt
         })
     else:
