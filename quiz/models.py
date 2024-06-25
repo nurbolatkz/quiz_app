@@ -66,19 +66,34 @@ class QuizAttempt(models.Model):
         return f"Attempt {self.pk} - User: {self.user.username}"
 
     @classmethod
-    def create_attempt(cls, user, topic=None, num_questions=25):
-        questions = Question.objects.all()
+    def create_attempt(cls, user, topic=None, num_questions=25, quiz_type="regular_quiz"):
+        if quiz_type == "regular_quiz":
+            questions = Question.objects.all()
+            if topic:
+                questions = questions.filter(topic=topic)
+            # Fix the logic here
+            num_questions = min(num_questions, questions.count())
+            questions = questions.order_by('?')[:num_questions]
+            question_ids = [question.id for question in questions]
 
-        if topic:
-            questions = questions.filter(topic=topic)
+            return cls.objects.create(
+                user=user,
+                quiz=question_ids,
+                total_questions=len(question_ids),
+                started_at=timezone.now()
+            )
+        else:
+            # Get the last quiz attempt by the user
+            last_quiz_attempt = QuizAttempt.objects.filter(
+                user=user).order_by('-started_at')[1]
+            if last_quiz_attempt:
+                incorrect_question_ids = last_quiz_attempt.incorrect_answers
+                questions = Question.objects.filter(
+                    id__in=incorrect_question_ids)
+                question_ids = [question.id for question in questions]
 
-        num_questions = max(num_questions, len(questions))
-        questions = questions.order_by('?')[:num_questions]
-        question_ids = [question.id for question in questions]
-
-        return cls.objects.create(
-            user=user,
-            quiz=question_ids,
-            total_questions=len(question_ids),
-            started_at=timezone.now()
-        )
+                return cls.objects.create(
+                    user=user,
+                    quiz=question_ids,
+                    total_questions=len(question_ids),
+                    started_at=timezone.now())

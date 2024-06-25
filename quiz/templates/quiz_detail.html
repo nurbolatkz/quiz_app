@@ -90,8 +90,8 @@
         const quizData = {{ quizData|safe }}; // Convert from JSON string to JavaScript object
         const quizLength = {{ quizLength }}; // Get quiz length from Django context
         const userAnswers = [];
-        let correctAnswersCount = 0;
-        let incorrectAnswersCount = 0;
+        const correctAnswers = [];
+        const incorrectAnswers = [];
 
         function setCurrentQuestionIndex(index) {
             currentQuestionIndex = index;
@@ -147,11 +147,11 @@
             if (option === currentQuestion.correct_answer) {
                 resultText.textContent = 'Correct!';
                 resultText.className = 'correct';
-                correctAnswersCount++;
+                correctAnswers.push(currentQuestion.id); 
             } else {
                 resultText.textContent = 'Incorrect!';
                 resultText.className = 'incorrect';
-                incorrectAnswersCount++;
+                incorrectAnswers.push(currentQuestion.id);
             }
 
             explanation.textContent = currentQuestion.explanation;
@@ -169,11 +169,11 @@
             const optionsList = document.getElementById('optionsList');
             Array.from(optionsList.children).forEach(li => {
                 li.classList.remove('active');
+                li.onclick = null;
                 if (li.textContent === option) {
                     li.classList.add('active');
                 }
             });
-
             userAnswers[currentQuestionIndex] = option;
         }
 
@@ -203,17 +203,17 @@
     csrfInput.value = csrfToken;
     form.appendChild(csrfInput);
 
-    const correctAnswersInput = document.createElement('input');
-    correctAnswersInput.type = 'hidden';
-    correctAnswersInput.name = 'correct_answers';
-    correctAnswersInput.value = correctAnswersCount;
-    form.appendChild(correctAnswersInput);
+     const correctAnswersInput = document.createElement('input');
+     correctAnswersInput.type = 'hidden';
+     correctAnswersInput.name = 'correct_answers';
+     correctAnswersInput.value = JSON.stringify(correctAnswers);
+     form.appendChild(correctAnswersInput);
 
-    const incorrectAnswersInput = document.createElement('input');
-    incorrectAnswersInput.type = 'hidden';
-    incorrectAnswersInput.name = 'incorrect_answers';
-    incorrectAnswersInput.value = incorrectAnswersCount;
-    form.appendChild(incorrectAnswersInput);
+     const incorrectAnswersInput = document.createElement('input');
+     incorrectAnswersInput.type = 'hidden';
+     incorrectAnswersInput.name = 'incorrect_answers';
+     incorrectAnswersInput.value = JSON.stringify(incorrectAnswers);
+     form.appendChild(incorrectAnswersInput);
 
     const userAnswersInput = document.createElement('input');
     userAnswersInput.type = 'hidden';

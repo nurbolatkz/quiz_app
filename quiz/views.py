@@ -5,12 +5,48 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
 from .models import QuizAttempt, Topic, Question, UserStats, Option
+from .utils import convert_to_list
 
 
 @login_required
 def home_view(request):
+    user = request.user
+
+    # Get all quiz attempts by the user
+    quiz_attempts = QuizAttempt.objects.filter(user=user)
+
+    # Calculate the total number of quizzes taken
+    quizzes_taken = quiz_attempts.count()
+
+    # Initialize counters
+    total_correct_answers = 0
+    total_incorrect_answers = 0
+
+    # Sum up the correct and incorrect answers
+    for attempt in quiz_attempts:
+        # print(type(attempt.correct_answers))
+        if isinstance(attempt.correct_answers, list):
+            total_correct_answers += len(attempt.correct_answers)
+        else:
+            total_correct_answers += 0
+        if isinstance(attempt.incorrect_answers, list):
+            total_incorrect_answers += len(attempt.incorrect_answers)
+        else:
+            total_incorrect_answers += 0
+
+    # Calculate the average stats
+    average_stats = f"{total_correct_answers / quizzes_taken:.2f} correct answers on average" if quizzes_taken else "N/A"
+
     topics = Topic.objects.all()
-    return render(request, 'home.html', {'topics': topics})
+
+    context = {
+        'quizzes_taken': quizzes_taken,
+        'average_stats': average_stats,
+        'incorrect_answers': total_incorrect_answers,
+        'topics': topics,
+    }
+
+    return render(request, 'home.html', context)
 
 
 def register_view(request):
@@ -77,6 +113,7 @@ def quiz_detail(request, attempt_id):
         examples = [{'sentence': example.sentence, 'highlight': example.highlight}
                     for example in question.examples.all()]
         quiz_data.append({
+            'id': question.id,
             'question': question.question_text,
             'explanation': question.explanation,
             'options': options,
@@ -97,8 +134,11 @@ def quiz_detail(request, attempt_id):
 @login_required
 def quiz_result(request, attempt_id):
     if request.method == 'POST':
-        correct_answers = int(request.POST.get('correct_answers'))
-        incorrect_answers = int(request.POST.get('incorrect_answers'))
+        correct_answers = request.POST.get('correct_answers')
+        incorrect_answers = request.POST.get('incorrect_answers')
+
+        correct_answers = convert_to_list(correct_answers)
+        incorrect_answers = convert_to_list(incorrect_answers)
 
         attempt = get_object_or_404(
             QuizAttempt, id=attempt_id, user=request.user)
@@ -107,15 +147,50 @@ def quiz_result(request, attempt_id):
 
         stats, created = UserStats.objects.get_or_create(user=request.user)
         stats.quizzes_taken += 1
-        stats.incorrect_answers += int(incorrect_answers)
+        stats.incorrect_answers += len(incorrect_answers)
         stats.average_stats = (
-            stats.average_stats * (stats.quizzes_taken - 1) + correct_answers) / stats.quizzes_taken
+            stats.average_stats * (stats.quizzes_taken - 1) + len(correct_answers)) / stats.quizzes_taken
         stats.save()
 
         return render(request, 'quiz_results.html', {
-            'correct_answers': correct_answers,
-            'incorrect_answers': incorrect_answers,
+            'correct_answers': len(correct_answers),
+            'incorrect_answers': len(incorrect_answers),
             'attempt': attempt
         })
     else:
         return render(request, 'quiz_results.html', {})
+
+
+@login_required
+def start_incorrect_quiz(request):
+    user = request.user
+
+    attempt = QuizAttempt.create_attempt(
+        user=user, topic=None, num_questions=25, quiz_type="incorrect_quiz")
+    attempt.save()  # Save the attempt after creation
+
+    questions = Question.objects.filter(id__in=attempt.quiz)
+
+    # Prepare quiz data in a format suitable for JavaScript (JSON)
+    quiz_data = []
+    print(questions)
+    for question in questions:
+        options = [option.option_text for option in question.options.all()]
+        examples = [{'sentence': example.sentence, 'highlight': example.highlight}
+                    for example in question.examples.all()]
+        quiz_data.append({
+            'id': question.id,
+            'question': question.question_text,
+            'explanation': question.explanation,
+            'options': options,
+            'correct_answer': question.correct_answer,
+            'examples': examples
+        })
+
+    # Calculate quiz length
+    quiz_length = len(quiz_data)
+    return render(request, 'quiz_detail.html', {
+        'attempt': attempt,
+        'quizData': quiz_data,
+        'quizLength': quiz_length  # Pass quiz length to template
+    })
